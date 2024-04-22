@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mapa de Ruido Gran Santiago Urbano 2023</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+   integrity="sha384-o/2yZuJZWGJ4s/adjxVW71R+EO/LyCwdQfP5UWSgX/w87iiTXuvDZaejd3TsN7mf"
+   crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+   integrity="sha384-okbbMvvx/qfQkmiQKfd5VifbKZ/W8p1qIsWvE1ROPUfHWsDcC8/BnHohF7vPg2T6"
+   crossorigin=""></script>
+  <script type="text/javascript" src="data/limites_comunales_v2.js"></script>
+  <style type="text/css">
+    body {
+       margin: 0;
+       padding: 0;
+    }
+    html, body, #map{
+       width: 100%;
+       height: 100%;
+       background-color: #FFF;
+    }
+    .info {
+      padding: 6px 8px;
+      font: 14px/16px Arial, Helvetica, sans-serif;
+      background: white;
+      background: rgba(255,255,255,0.8);
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border-radius: 5px;
+    }
+    .info h4 {
+      margin: 0 0 5px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+      var map = L.map('map', {
+        attributionControl: false,
+        minZoom:11,
+        maxZoom:12
+      });
+      map.setView([-33.48031674525548, -70.64304903614851], 11.0);
+      map.setMaxBounds([
+            [-33.745874529,-70.943445986],
+            [-33.208490813,-70.332456461]])
+      L.control.attribution( { prefix: false } ).addTo( map );
+
+      var tilesource_layer = L.tileLayer('data/01_Ld/{z}/{x}/{y}.png', {
+        minZoom: 11,
+        maxZoom: 12,
+        tms: false,
+        attribution: '<a href="https://ruido.mma.gob.cl/mapas-de-ruido/">Sección Ruido,<br/>Departamento Ruido, Lumínica y Olores<br/>División Calidad del Aire<br/>Ministerio del Medio Ambiente, Chile<br/>[Abril 2024]</a>'
+      }).addTo(map);
+
+      // control that shows state info on hover
+      const info = L.control({position: 'topright'});
+      info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info');
+        this.update();
+        return this._div;
+      };
+      info.update = function (props) {
+        const contents = props ? `<b>${props.COM}</b><br />Dia: ${props.N_DIA} personas (${Math.round(props.P_DIA*100)}%) sobre 65 dBA<br/>Noche: ${props.N_NOCHE} personas (${Math.round(props.P_NOCHE*100)}%) sobre 55 dBA` : '<br />Revisa la información por comuna<br/>&nbsp;';
+        this._div.innerHTML = `<h4>Personas potencialmente afectadas por ruido<br />de tránsito vehicular</h4>${contents}`;
+      };
+      info.addTo(map);
+
+      function style_limites() {
+          return {
+              //pane: 'pane_limites_comunales_v2_0',
+              opacity: 1,
+              color: 'rgba(0,0,0,1.0)',
+              dashArray: '',
+              lineCap: 'butt',
+              lineJoin: 'miter',
+              weight: 1.0, 
+              fill: true,
+              fillOpacity: 0.7,
+              fillColor: 'rgba(255,255,255,1)',
+              interactive: true,
+          }
+      }
+
+      function onEachFeature(feature, layer) {
+        layer.on({
+          mouseover: highlightFeature,
+          mouseout: resetHighlight,
+          click: zoomToFeature
+        });
+      }
+      function highlightFeature(e) {
+        const layer = e.target;
+        layer.setStyle({
+          weight: 2,
+          dashArray: '',
+          fillOpacity: 0
+        });
+        layer.bringToFront();
+        info.update(layer.feature.properties);
+      }
+      function resetHighlight(e) {
+        geojson.resetStyle(e.target);
+        info.update();
+      }
+      function zoomToFeature(e) {
+        map.fitBounds(e.target.getBounds());
+      }
+
+      const geojson = L.geoJson(limites, {
+        style: style_limites,
+        onEachFeature: onEachFeature
+      }).addTo(map);
+
+  </script>
+</body>
+</html>
